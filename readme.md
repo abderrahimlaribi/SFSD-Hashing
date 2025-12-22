@@ -115,7 +115,7 @@ Where K is the number of fragments (0 to K-1)
 
 ## Author
 
-- **Abderrahim Laribi**
+- **Laribi Abderrahim**
 - **Group**: 11
 - **Date**: December 2025
 - **Institution**: ESI (Higher School of Computer Science)
