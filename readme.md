@@ -3,12 +3,10 @@
 ## Project Structure
 
 ```
-PW1_YourNames/
+PW1_LARIBI_DORGHAM_model/
 ├── main.c           # Main program with menu
 ├── functions.h      # Function declarations
-├── functions.c      # Core implementation
-├── display.h        # Display function declarations
-├── display.c        # Display implementations with Windows styling
+├── functions.c      # Core implementation and Display implementations with Windows styling
 └── README.md        # This file
 ```
 
@@ -16,7 +14,7 @@ PW1_YourNames/
 
 ### Using GCC (MinGW on Windows):
 ```bash
-gcc -o program main.c functions.c display.c -luser32
+gcc -o program main.c functions.c -luser32
 ```
 
 The `-luser32` flag is needed for the `MessageBox` function.
@@ -115,7 +113,8 @@ Where K is the number of fragments (0 to K-1)
 
 ## Author
 
-- **Laribi Abderrahim**
+- **Laribi Abderrahim - Dorgham Abdelillah**
 - **Group**: 11
 - **Date**: December 2025
 - **Institution**: ESI (Higher School of Computer Science)
+

@@ -5,7 +5,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include "display.h"
+#include <windows.h>
+
 
 // Constants
 #define B 6  // Block capacity (max records per block)
@@ -34,12 +35,12 @@ extern int K;  // Number of fragments
 extern int M;  // Number of buffers in memory
 
 // Function declarations for basic file operations
-void initialize_file(FILE** file, const char* name, char mode);
+void Open(FILE** file, const char* name, char mode);
 void initial_head(FILE* file);
-bool read_block(FILE* file, int i, Buffer* buff);
-bool write_block(FILE* file, int i, Buffer* buff);
-int get_head(FILE* file, int i);
-void set_head(FILE* file, int NB, int i);
+bool readBlock(FILE* file, int i, Buffer* buff);
+bool writeBlock(FILE* file, int i, Buffer* buff);
+int getHeader(FILE* file, int i);
+void setHeader(FILE* file, int NB, int i);
 
 // Hash function
 int hash_function(int key);
@@ -64,5 +65,44 @@ void physical_deletion_TnOF(FILE* file, int c, Buffer* buff1, Buffer* buff2);
 
 // Display all fragments
 void display_all_fragments(int K);
+
+
+// Screen management
+void clear_screen();
+
+// Welcome and main interface
+void welcome();
+void main_interface();
+
+// Menu displays
+void main_menu();
+void partition_menu();
+void operation_menu();
+
+// Operation displays
+void display_partition_header();
+void display_search_header();
+void display_insert_header();
+void display_delete_header();
+void display_fragments_header();
+
+// Result messages
+void success_message(const char* message);
+void error_message(const char* message);
+void info_message(const char* message);
+
+// Input prompts
+void enter_number_prompt();
+void enter_K_prompt();
+void enter_M_prompt();
+void enter_key_prompt();
+
+// Status displays
+void exiting_program();
+void invalid_choice();
+void operation_complete();
+
+
+
 
 #endif

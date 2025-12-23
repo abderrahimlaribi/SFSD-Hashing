@@ -22,7 +22,7 @@ void initial_head(FILE* file) {
 }
 
 // Open/create file
-void initialize_file(FILE** file, const char* name, char mode) {
+void Open(FILE** file, const char* name, char mode) {
     if (mode == 'N' || mode == 'n') {
         *file = fopen(name, "wb+");
         if (*file != NULL) {
@@ -40,7 +40,7 @@ void initialize_file(FILE** file, const char* name, char mode) {
 }
 
 // Read block from file
-bool read_block(FILE* file, int i, Buffer* buff) {
+bool readBlock(FILE* file, int i, Buffer* buff) {
     if (file == NULL || i <= 0) return false;
     if (fseek(file, (i - 1) * sizeof(Buffer) + head_size, SEEK_SET) != 0) return false;
     if (fread(buff, sizeof(Buffer), 1, file) != 1) return false;
@@ -48,7 +48,7 @@ bool read_block(FILE* file, int i, Buffer* buff) {
 }
 
 // Write block to file
-bool write_block(FILE* file, int i, Buffer* buff) {
+bool writeBlock(FILE* file, int i, Buffer* buff) {
     if (file == NULL || i <= 0) return false;
     if (fseek(file, (i - 1) * sizeof(Buffer) + head_size, SEEK_SET) != 0) return false;
     if (fwrite(buff, sizeof(Buffer), 1, file) != 1) return false;
@@ -56,7 +56,7 @@ bool write_block(FILE* file, int i, Buffer* buff) {
 }
 
 // Get header field
-int get_head(FILE* file, int i) {
+int getHeader(FILE* file, int i) {
     if (file != NULL) {
         Header head;
         fseek(file, 0, SEEK_SET);
@@ -70,7 +70,7 @@ int get_head(FILE* file, int i) {
 }
 
 // Set header field
-void set_head(FILE* file, int NB, int i) {
+void setHeader(FILE* file, int NB, int i) {
     if (file != NULL) {
         Header head;
         fseek(file, 0, SEEK_SET);
@@ -100,7 +100,7 @@ void create_initial_file(FILE* file, int n, Buffer* buff) {
             j++;
         } else {
             buff->nbr = j;
-            write_block(file, i, buff);
+            writeBlock(file, i, buff);
             buff->tab[0].key = key;
             buff->tab[0].deleted = false;
             i++;
@@ -109,23 +109,23 @@ void create_initial_file(FILE* file, int n, Buffer* buff) {
     }
     
     buff->nbr = j;
-    write_block(file, i, buff);
-    set_head(file, i, 1);
-    set_head(file, n, 2);
+    writeBlock(file, i, buff);
+    setHeader(file, i, 1);
+    setHeader(file, n, 2);
 }
 
 // Display a TnOF file
 void display_file(FILE* file, const char* filename) {
     Buffer buff;
-    int N = get_head(file, 1);
+    int N = getHeader(file, 1);
     
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
     printf("\n      ===== File: %s =====\n", filename);
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-    printf("      Total blocks: %d, Total records: %d\n", N, get_head(file, 2));
+    printf("      Total blocks: %d, Total records: %d\n", N, getHeader(file, 2));
     
     for (int i = 1; i <= N; i++) {
-        read_block(file, i, &buff);
+        readBlock(file, i, &buff);
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
         printf("      Block %d: ", i);
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
@@ -169,7 +169,7 @@ void partition_file_by_hashing(const char* source_file, int K_param, int M_param
     
     // Open source file
     FILE* source;
-    initialize_file(&source, source_file, 'A');
+    Open(&source, source_file, 'A');
     if (source == NULL) {
         error_message("Cannot open source file!");
         operation_complete();
@@ -179,7 +179,7 @@ void partition_file_by_hashing(const char* source_file, int K_param, int M_param
     // Initialize all fragment files
     FILE* fragments[K];
     for (int i = 0; i < K; i++) {
-        initialize_file(&fragments[i], get_fragment_name(i), 'N');
+        Open(&fragments[i], get_fragment_name(i), 'N');
         if (fragments[i] == NULL) {
             error_message("Cannot create fragment");
             operation_complete();
@@ -194,7 +194,7 @@ void partition_file_by_hashing(const char* source_file, int K_param, int M_param
     }
     
     // Read source file and distribute records
-    int N = get_head(source, 1);
+    int N = getHeader(source, 1);
     Buffer source_buff;
     int total_records = 0;
     
@@ -212,7 +212,7 @@ void partition_file_by_hashing(const char* source_file, int K_param, int M_param
         
         // Read all blocks from source file
         for (int block_num = 1; block_num <= N; block_num++) {
-            read_block(source, block_num, &source_buff);
+            readBlock(source, block_num, &source_buff);
             
             // Process each record in the block
             for (int j = 0; j < source_buff.nbr; j++) {
@@ -230,11 +230,11 @@ void partition_file_by_hashing(const char* source_file, int K_param, int M_param
                         
                         // If buffer is full, write to fragment
                         if (buffers[buffer_index].nbr >= B) {
-                            int frag_blocks = get_head(fragments[hash_val], 1);
-                            write_block(fragments[hash_val], frag_blocks + 1, &buffers[buffer_index]);
-                            set_head(fragments[hash_val], frag_blocks + 1, 1);
-                            int frag_records = get_head(fragments[hash_val], 2);
-                            set_head(fragments[hash_val], frag_records + buffers[buffer_index].nbr, 2);
+                            int frag_blocks = getHeader(fragments[hash_val], 1);
+                            writeBlock(fragments[hash_val], frag_blocks + 1, &buffers[buffer_index]);
+                            setHeader(fragments[hash_val], frag_blocks + 1, 1);
+                            int frag_records = getHeader(fragments[hash_val], 2);
+                            setHeader(fragments[hash_val], frag_records + buffers[buffer_index].nbr, 2);
                             buffers[buffer_index].nbr = 0;
                         }
                         total_records++;
@@ -247,11 +247,11 @@ void partition_file_by_hashing(const char* source_file, int K_param, int M_param
         for (int i = 0; i < batch_size; i++) {
             if (buffers[i].nbr > 0) {
                 int frag_idx = batch_start + i;
-                int frag_blocks = get_head(fragments[frag_idx], 1);
-                write_block(fragments[frag_idx], frag_blocks + 1, &buffers[i]);
-                set_head(fragments[frag_idx], frag_blocks + 1, 1);
-                int frag_records = get_head(fragments[frag_idx], 2);
-                set_head(fragments[frag_idx], frag_records + buffers[i].nbr, 2);
+                int frag_blocks = getHeader(fragments[frag_idx], 1);
+                writeBlock(fragments[frag_idx], frag_blocks + 1, &buffers[i]);
+                setHeader(fragments[frag_idx], frag_blocks + 1, 1);
+                int frag_records = getHeader(fragments[frag_idx], 2);
+                setHeader(fragments[frag_idx], frag_records + buffers[i].nbr, 2);
             }
         }
     }
@@ -270,13 +270,13 @@ void partition_file_by_hashing(const char* source_file, int K_param, int M_param
 
 // Search in TnOF fragment
 void search_TnOF(FILE* file, bool* found, int* j, int* i, int c, Buffer* buff) {
-    int N = get_head(file, 1);
+    int N = getHeader(file, 1);
     *i = 1;
     *j = 0;
     *found = false;
     
     while (*i <= N && !(*found)) {
-        if (read_block(file, *i, buff)) {
+        if (readBlock(file, *i, buff)) {
             *j = 0;
             while (*j < buff->nbr && !(*found)) {
                 if (c == buff->tab[*j].key && !buff->tab[*j].deleted) {
@@ -304,7 +304,7 @@ void search_in_fragments(int key, int K_param) {
     printf("      Target fragment: fragment_%d.bin\n", hash_val);
     
     FILE* fragment;
-    initialize_file(&fragment, get_fragment_name(hash_val), 'A');
+    Open(&fragment, get_fragment_name(hash_val), 'A');
     
     if (fragment == NULL) {
         error_message("Cannot open fragment!");
@@ -340,28 +340,28 @@ void insert_TnOF(int c, FILE* file, Buffer* buff) {
     search_TnOF(file, &found, &j, &i, c, buff);
     
     if (!found) {
-        int N = get_head(file, 1);
+        int N = getHeader(file, 1);
         if (N != 0) {
-            read_block(file, N, buff);
+            readBlock(file, N, buff);
         } else {
             N = 1;
-            set_head(file, N, 1);
+            setHeader(file, N, 1);
             buff->nbr = 0;
         }
         
         if (buff->nbr < B) {
             buff->tab[buff->nbr] = e;
             buff->nbr++;
-            write_block(file, N, buff);
+            writeBlock(file, N, buff);
         } else {
             buff->nbr = 1;
             buff->tab[0] = e;
-            write_block(file, N + 1, buff);
-            set_head(file, N + 1, 1);
+            writeBlock(file, N + 1, buff);
+            setHeader(file, N + 1, 1);
         }
         
-        int total = get_head(file, 2);
-        set_head(file, total + 1, 2);
+        int total = getHeader(file, 2);
+        setHeader(file, total + 1, 2);
     }
 }
 
@@ -376,7 +376,7 @@ void insert_in_fragments(int key, int K_param) {
     printf("      Target fragment: fragment_%d.bin\n", hash_val);
     
     FILE* fragment;
-    initialize_file(&fragment, get_fragment_name(hash_val), 'A');
+    Open(&fragment, get_fragment_name(hash_val), 'A');
     
     if (fragment == NULL) {
         error_message("Cannot open fragment!");
@@ -411,35 +411,35 @@ void physical_deletion_TnOF(FILE* file, int c, Buffer* buff1, Buffer* buff2) {
     search_TnOF(file, &found, &j, &i, c, buff1);
     
     if (found) {
-        int N = get_head(file, 1);
+        int N = getHeader(file, 1);
         if (i != N) {
             // Record not in last block
-            read_block(file, i, buff1);
-            read_block(file, N, buff2);
+            readBlock(file, i, buff1);
+            readBlock(file, N, buff2);
             buff1->tab[j] = buff2->tab[buff2->nbr - 1];
             buff2->nbr--;
-            write_block(file, i, buff1);
+            writeBlock(file, i, buff1);
             
             if (buff2->nbr > 0) {
-                write_block(file, N, buff2);
+                writeBlock(file, N, buff2);
             } else {
-                set_head(file, N - 1, 1);
+                setHeader(file, N - 1, 1);
             }
         } else {
             // Record in last block
-            read_block(file, N, buff1);
+            readBlock(file, N, buff1);
             buff1->tab[j] = buff1->tab[buff1->nbr - 1];
             buff1->nbr--;
             
             if (buff1->nbr > 0) {
-                write_block(file, N, buff1);
+                writeBlock(file, N, buff1);
             } else {
-                set_head(file, N - 1, 1);
+                setHeader(file, N - 1, 1);
             }
         }
         
-        int total = get_head(file, 2);
-        set_head(file, total - 1, 2);
+        int total = getHeader(file, 2);
+        setHeader(file, total - 1, 2);
     }
 }
 
@@ -454,7 +454,7 @@ void delete_in_fragments(int key, int K_param) {
     printf("      Target fragment: fragment_%d.bin\n", hash_val);
     
     FILE* fragment;
-    initialize_file(&fragment, get_fragment_name(hash_val), 'A');
+    Open(&fragment, get_fragment_name(hash_val), 'A');
     
     if (fragment == NULL) {
         error_message("Cannot open fragment!");
@@ -488,7 +488,7 @@ void display_all_fragments(int K_param) {
     
     for (int i = 0; i < K; i++) {
         FILE* fragment;
-        initialize_file(&fragment, get_fragment_name(i), 'A');
+        Open(&fragment, get_fragment_name(i), 'A');
         
         if (fragment != NULL) {
             display_file(fragment, get_fragment_name(i));
@@ -497,4 +497,352 @@ void display_all_fragments(int K_param) {
     }
     
     operation_complete();
+}
+
+// Wrapper for close if needed
+void Close(FILE* file) {
+    if (file != NULL) {
+        fclose(file);
+    }
+}
+
+// Allocate a new block 
+int allocBlock(FILE* file) {
+    int N = getHeader(file, 1);
+    setHeader(file, N + 1, 1);
+    return N + 1;
+}
+
+// Clear screen function
+void clear_screen() {
+    system("cls||clear");
+}
+
+// Welcome screen
+void welcome() {
+       system("cls");
+       printf("\n\n");
+       SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 3);
+   
+       // Top border
+       printf("     %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+              201,
+              205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+              205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+              205,205,205,205,205,205,205,205,205,205,205,205,203,205,205,205,205,205,205,205,
+              205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+              187);
+   
+       // Content
+       printf("     %c     FILE STRUCTURES AND DATA STRUCTURES (FSDS)     %c     ESI - 2025/2026       %c\n", 186, 186, 186);
+       printf("     %c     ==========================================     %c    LARIBI ABDERRAHIM      %c\n", 186, 186, 186);
+       printf("     %c       PRACTICAL WORK: FILE PARTITIONING BY         %c    DORGHAM ABDELILLAH     %c\n", 186, 186, 186);
+       printf("     %c              HASHING METHODS                       %c    GROUP: 11              %c\n", 186, 186, 186);
+   
+       // Middle separator
+       printf("     %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+              204,
+              205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+              205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+              205,205,205,205,205,205,205,205,205,205,205,205,206,205,205,205,205,205,205,205,
+              205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+              185);
+   
+       // Footer content
+       printf("     %c   HIGHER SCHOOL OF COMPUTER SCIENCE - ALGIERS      %c                           %c\n", 186, 186, 186);
+   
+       // Bottom border
+       printf("     %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+              200,
+              205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+              205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+              205,205,205,205,205,205,205,205,205,205,205,205,202,205,205,205,205,205,205,205,
+              205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+              188);
+   
+       SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+       printf("\n        THANKS FOR CHOOSING OUR PROGRAM!\n");
+       printf("        Press ENTER to continue...");
+       getchar();
+   }
+   
+// Main interface
+void main_interface() {
+    system("cls");
+    printf("\n\n\n");
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 3);
+    printf("     %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%C\n",
+           201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187);
+    printf("     %c   This program demonstrates file partitioning using hashing       %c\n", 186, 186);
+    printf("     %c   methods. You will be able to:                                   %c\n", 186, 186);
+    printf("     %c   - Create an initial TnOF file with records                      %c\n", 186, 186);
+    printf("     %c   - Partition the file into K fragments using h(x) = x mod K      %c\n", 186, 186);
+    printf("     %c   - Perform search, insert, and delete operations                 %c\n", 186, 186);
+    printf("     %c   - Display fragments and analyze the structure                   %c\n", 186, 186);
+    printf("     %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%C%C\n",
+           200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+    printf("\n        What do you want to do?\n");
+    printf("            -----------> 1: Continue to the program\n");
+    printf("            -----------> 2: Quit the program\n");
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 3);
+    printf("\n        Enter your choice: ");
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Main menu
+void main_menu() {
+       SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 3);
+   
+       // Top border
+       printf("      %c", 201);
+       for (int i = 0; i < 87; i++) printf("%c", 205);
+       printf("%c\n", 187);
+   
+       // Title
+       printf("      %c    FILE PARTITIONING BY HASHING - MAIN MENU                                           %c\n", 186, 186);
+   
+       // Separator
+       printf("      %c", 204);
+       for (int i = 0; i < 87; i++) printf("%c", 205);
+       printf("%c\n", 185);
+   
+       // Empty line
+       printf("      %c                                                                                       %c\n", 186, 186);
+   
+       // Section titles
+       printf("      %c    FILE CREATION & PARTITIONING                    OPERATIONS ON FRAGMENTS            %c\n", 186, 186);
+   
+       // Inner boxes top
+       printf("      %c    %c", 186, 201);
+       for (int i = 0; i < 32; i++) printf("%c", 205);
+       printf("%c            %c", 187, 201);
+       for (int i = 0; i < 32; i++) printf("%c", 205);
+       printf("%c   %c\n", 187, 186);
+   
+       // Row 1
+       printf("      %c    %c 1. Create initial TnOF file    %c            %c 5. Search for a key            %c   %c\n",
+              186, 186, 186, 186, 186, 186);
+   
+       // Row 2
+       printf("      %c    %c 2. Display initial file        %c            %c 6. Insert a key                %c   %c\n",
+              186, 186, 186, 186, 186, 186);
+   
+       // Row 3
+       printf("      %c    %c 3. Partition file by           %c            %c 7. Delete a key                %c   %c\n",
+              186, 186, 186, 186, 186, 186);
+   
+       // Row 4
+       printf("      %c    %c    hashing into K fragments    %c            %c 8. Display all fragments       %c   %c\n",
+              186, 186, 186, 186, 186, 186);
+   
+       // Row 5
+       printf("      %c    %c 4. Display initial file        %c            %c                                %c   %c\n",
+              186, 186, 186, 186, 186, 186);
+   
+       // Inner boxes bottom
+       printf("      %c    %c", 186, 200);
+       for (int i = 0; i < 32; i++) printf("%c", 205);
+       printf("%c            %c", 188, 200);
+       for (int i = 0; i < 32; i++) printf("%c", 205);
+       printf("%c   %c\n", 188, 186);
+   
+       // Empty line
+       printf("      %c                                                                                       %c\n", 186, 186);
+   
+       // Exit
+       printf("      %c                              0. EXIT PROGRAM                                          %c\n", 186, 186);
+   
+       // Bottom border
+       printf("      %c", 200);
+       for (int i = 0; i < 87; i++) printf("%c", 205);
+       printf("%c\n", 188);
+   
+       SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+   }
+   
+   
+
+// Success message
+void success_message(const char* message) {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10);
+    printf("\n      %c SUCCESS: %s\n", 251, message);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Error message
+void error_message(const char* message) {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
+    printf("\n      %c ERROR: %s\n", 88, message);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Info message
+void info_message(const char* message) {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+    printf("      %c INFO: %s\n", 187, message);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Enter number prompt
+void enter_number_prompt() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+    printf("\n      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187);
+    printf("      %c                  Enter the number of records to create:                         %c\n", 186, 186);
+    printf("      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188);
+    printf("      >> ");
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Enter K prompt
+void enter_K_prompt() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+    printf("\n      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187);
+    printf("      %c              Enter the number of fragments (K):                                 %c\n", 186, 186);
+    printf("      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188);
+    printf("      >> ");
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Enter M prompt
+void enter_M_prompt() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+    printf("\n      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187);
+    printf("      %c        Enter the number of buffers in memory (M < K):                           %c\n", 186, 186);
+    printf("      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188);
+    printf("      >> ");
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Enter key prompt
+void enter_key_prompt() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+    printf("\n      Enter the key value: ");
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Exiting program
+void exiting_program() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
+    printf("\n      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187);
+    printf("      %c                                                                                 %c\n", 186, 186);
+    printf("      %c                     THANK YOU FOR USING OUR PROGRAM!                            %c\n", 186, 186);
+    printf("      %c                            Exiting the program...                               %c\n", 186, 186);
+    printf("      %c                                                                                 %c\n", 186, 186);
+    printf("      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+    MessageBox(NULL, "Thank you for using our program!", "EXIT", MB_OK | MB_ICONINFORMATION);
+}
+
+// Invalid choice
+void invalid_choice() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
+    printf("\n      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187);
+    printf("      %c                    INVALID CHOICE! Please try again.                          %c\n", 186, 186);
+    printf("      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+    MessageBox(NULL, "Invalid choice! Try again.", "INVALID", MB_OK | MB_ICONWARNING);
+}
+
+// Operation complete
+void operation_complete() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10);
+    printf("\n      Press ENTER to continue...");
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+    getchar();
+    getchar();
+}
+
+// Operation menu
+void operation_menu() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+    printf("\n      Enter your choice: ");
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Partition menu header
+void display_partition_header() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+    printf("\n      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187);
+    printf("      %c                    PARTITIONING FILE BY HASHING                                 %c\n", 186, 186);
+    printf("      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Search operation header
+void display_search_header() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10);
+    printf("\n      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187);
+    printf("      %c                         SEARCH OPERATION                                        %c\n", 186, 186);
+    printf("      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Insert operation header
+void display_insert_header() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+    printf("\n      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187);
+    printf("      %c                         INSERT OPERATION                                        %c\n", 186, 186);
+    printf("      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Delete operation header
+void display_delete_header() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
+    printf("\n      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187);
+    printf("      %c                         DELETE OPERATION                                        %c\n", 186, 186);
+    printf("      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+// Display fragments header
+void display_fragments_header() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 13);
+    printf("\n      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187);
+    printf("      %c                      DISPLAYING ALL FRAGMENTS                                   %c\n", 186, 186);
+    printf("      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+           200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
+           205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
 }

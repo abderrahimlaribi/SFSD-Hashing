@@ -1,6 +1,10 @@
 #include "functions.h"
 
 int main() {
+     SetConsoleOutputCP(437);     // Force CP437
+    SetConsoleCP(437);
+    system("cls");
+
     int choice;
     int n, key, K_val, M_val;
     FILE* initial_file = NULL;
@@ -42,7 +46,7 @@ int main() {
                     printf("\n      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
                            201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
                            205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187);
-                    printf("      %c                      CREATE INITIAL TnOF FILE                                %c\n", 186, 186);
+                    printf("      %c                      CREATE INITIAL TnOF FILE                                   %c\n", 186, 186);
                     printf("      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
                            200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,
                            205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188);
@@ -57,7 +61,7 @@ int main() {
                         break;
                     }
                     
-                    initialize_file(&initial_file, initial_filename, 'N');
+                    Open(&initial_file, initial_filename, 'N');
                     if (initial_file == NULL) {
                         error_message("Cannot create file!");
                         operation_complete();
@@ -82,7 +86,7 @@ int main() {
                         break;
                     }
                     
-                    initialize_file(&initial_file, initial_filename, 'A');
+                    Open(&initial_file, initial_filename, 'A');
                     if (initial_file == NULL) {
                         error_message("Cannot open file!");
                         operation_complete();
@@ -139,7 +143,7 @@ int main() {
                         break;
                     }
                     
-                    initialize_file(&initial_file, initial_filename, 'A');
+                    Open(&initial_file, initial_filename, 'A');
                     if (initial_file == NULL) {
                         error_message("Cannot open file!");
                         operation_complete();
